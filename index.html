@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Copilot Feature Prompt Generator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-10">
+
+<div class="max-w-5xl mx-auto bg-white shadow-xl rounded-xl p-8">
+
+<h1 class="text-2xl font-bold mb-6">Copilot Feature Prompt Generator</h1>
+
+<!-- Project Context -->
+<div class="mb-6">
+<label class="font-semibold">Project Context File</label>
+<input id="context" class="w-full border rounded p-2 mt-1"
+value="Use INSTRUCTIONS.md as project context.">
+</div>
+
+<!-- Features Container -->
+<div id="featuresContainer" class="space-y-6"></div>
+
+<button onclick="addFeature()" class="bg-green-600 text-white px-4 py-2 rounded mb-6">
++ Add Feature
+</button>
+
+<!-- Constraints -->
+<div class="mb-6">
+<label class="font-semibold">Global Constraints</label>
+<textarea id="constraints" rows="4"
+class="w-full border rounded p-2 mt-1"
+placeholder="- Avoid redundant tables
+- Follow repository pattern
+- Reuse existing architecture"></textarea>
+</div>
+
+<button onclick="generatePrompt()"
+class="bg-blue-600 text-white px-6 py-2 rounded">
+Generate Copilot Prompt
+</button>
+
+<!-- Output -->
+<div class="mt-6">
+<label class="font-semibold">Generated Prompt</label>
+<textarea id="output" rows="15"
+class="w-full border rounded p-3 mt-1 bg-gray-50"></textarea>
+</div>
+
+</div>
+
+<script>
+
+let featureCount = 0
+
+function addFeature(){
+
+featureCount++
+
+const html = `
+<div class="border rounded-lg p-4 bg-gray-50">
+
+<label class="font-semibold">Feature ${featureCount}</label>
+
+<input class="featureName w-full border p-2 rounded mt-1"
+placeholder="Example: Ministries">
+
+<label class="font-semibold mt-3 block">Tasks</label>
+
+<textarea class="featureTasks w-full border p-2 rounded mt-1"
+rows="4"
+placeholder="- Fix CRUD validation
+- Prevent duplicate titles
+- Improve form UX"></textarea>
+
+</div>
+`
+
+document.getElementById("featuresContainer")
+.insertAdjacentHTML("beforeend", html)
+
+}
+
+function generatePrompt(){
+
+const context = document.getElementById("context").value
+const constraints = document.getElementById("constraints").value
+
+const featureNames = document.querySelectorAll(".featureName")
+const featureTasks = document.querySelectorAll(".featureTasks")
+
+let prompt = `${context}\n\nFeatures and tasks:\n\n`
+
+featureNames.forEach((feature, i)=>{
+
+const name = feature.value
+const tasks = featureTasks[i].value
+
+if(name){
+
+prompt += `Feature: ${name}\nTasks:\n${tasks}\n\n`
+
+}
+
+})
+
+prompt += `Constraints:\n${constraints}\n\n`
+
+prompt += `Instructions:
+- Analyze existing implementation first
+- Refactor only if necessary
+- Follow existing architecture
+- Avoid unnecessary explanations
+`
+
+document.getElementById("output").value = prompt
+
+}
+
+addFeature()
+
+</script>
+
+</body>
+</html>
