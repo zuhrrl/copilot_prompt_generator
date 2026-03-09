@@ -140,39 +140,55 @@ saveState()
 
 }
 
+
 function generatePrompt(){
 
-const context = contextInput.value
-const constraints = constraintsInput.value
+    const context = contextInput.value.trim()
+    const constraints = constraintsInput.value.trim()
 
-const featureNames = document.querySelectorAll(".featureName")
-const featureTasks = document.querySelectorAll(".featureTasks")
+    const featureNames = document.querySelectorAll(".featureName")
+    const featureTasks = document.querySelectorAll(".featureTasks")
 
-let prompt = `${context}\n\nFeatures and tasks:\n\n`
+    let prompt = `PROJECT CONTEXT
+    ${context}
 
-featureNames.forEach((feature, i)=>{
+    `
 
-const name = feature.value.trim()
-const tasks = featureTasks[i].value.trim()
+    featureNames.forEach((feature, i)=>{
 
-if(name){
+    const name = feature.value.trim()
+    const tasks = featureTasks[i].value.trim()
 
-prompt += `Feature: ${name}\nTasks:\n${tasks}\n\n`
+    if(!name) return
 
-}
+    prompt += `FEATURE
+    ${name}
 
-})
+    GOAL
+    Improve and stabilize the ${name} module.
 
-prompt += `Constraints:\n${constraints}\n\n`
+    TASKS
+    ${tasks}
 
-prompt += `Instructions:
-- Analyze existing implementation first
-- Refactor only if necessary
-- Follow existing architecture
-- Avoid unnecessary explanations
-`
+    `
 
-document.getElementById("output").value = prompt
+    })
+
+    prompt += `CONSTRAINTS
+    ${constraints}
+
+    IMPLEMENTATION RULES
+    - Analyze existing implementation before coding
+    - Modify existing code instead of rewriting
+    - Follow the current architecture and naming conventions
+    - Avoid unnecessary refactors
+    - Keep implementation simple and maintainable
+
+    EXPECTED OUTPUT
+    - Updated or new code that integrates with the current project
+    `
+
+    document.getElementById("output").value = prompt
 
 }
 
