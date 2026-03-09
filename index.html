@@ -14,15 +14,15 @@
 
 <!-- Project Context -->
 <div class="mb-6">
-<label class="font-semibold">Project Context File</label>
-<input id="context" class="w-full border rounded p-2 mt-1"
-value="Use INSTRUCTIONS.md as project context.">
+<label class="font-semibold">Project Context</label>
+<input id="context" class="w-full border rounded p-2 mt-1">
 </div>
 
-<!-- Features Container -->
+<!-- Features -->
 <div id="featuresContainer" class="space-y-6"></div>
 
-<button onclick="addFeature()" class="bg-green-600 text-white px-4 py-2 rounded mb-6">
+<button id="addFeatureBtn"
+class="bg-green-600 text-white px-4 py-2 rounded mb-6">
 + Add Feature
 </button>
 
@@ -36,7 +36,7 @@ placeholder="- Avoid redundant tables
 - Reuse existing architecture"></textarea>
 </div>
 
-<button onclick="generatePrompt()"
+<button id="generateBtn"
 class="bg-blue-600 text-white px-6 py-2 rounded">
 Generate Copilot Prompt
 </button>
@@ -52,19 +52,70 @@ class="w-full border rounded p-3 mt-1 bg-gray-50"></textarea>
 
 <script>
 
-let featureCount = 0
+const STORAGE_KEY = "copilotPromptGenerator"
 
-function addFeature(){
+const contextInput = document.getElementById("context")
+const constraintsInput = document.getElementById("constraints")
+const container = document.getElementById("featuresContainer")
 
-featureCount++
+document.getElementById("addFeatureBtn").onclick = addFeature
+document.getElementById("generateBtn").onclick = generatePrompt
 
-const html = `
-<div class="border rounded-lg p-4 bg-gray-50">
+function saveState() {
 
-<label class="font-semibold">Feature ${featureCount}</label>
+const features = []
+
+document.querySelectorAll(".featureBlock").forEach(block => {
+
+features.push({
+name: block.querySelector(".featureName").value,
+tasks: block.querySelector(".featureTasks").value
+})
+
+})
+
+const data = {
+context: contextInput.value,
+constraints: constraintsInput.value,
+features
+}
+
+localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+
+}
+
+function loadState(){
+
+const data = JSON.parse(localStorage.getItem(STORAGE_KEY))
+
+if(!data){
+contextInput.value = "Use INSTRUCTIONS.md as project context."
+addFeature()
+return
+}
+
+contextInput.value = data.context || ""
+constraintsInput.value = data.constraints || ""
+
+data.features.forEach(f => addFeature(f.name, f.tasks))
+
+}
+
+function addFeature(name = "", tasks = ""){
+
+const div = document.createElement("div")
+
+div.className = "featureBlock border rounded-lg p-4 bg-gray-50"
+
+div.innerHTML = `
+<div class="flex justify-between items-center">
+<label class="font-semibold">Feature</label>
+<button class="text-red-500 text-sm removeBtn">Remove</button>
+</div>
 
 <input class="featureName w-full border p-2 rounded mt-1"
-placeholder="Example: Ministries">
+placeholder="Example: Ministries"
+value="${name}">
 
 <label class="font-semibold mt-3 block">Tasks</label>
 
@@ -72,20 +123,27 @@ placeholder="Example: Ministries">
 rows="4"
 placeholder="- Fix CRUD validation
 - Prevent duplicate titles
-- Improve form UX"></textarea>
-
-</div>
+- Improve form UX">${tasks}</textarea>
 `
 
-document.getElementById("featuresContainer")
-.insertAdjacentHTML("beforeend", html)
+container.appendChild(div)
+
+div.querySelector(".removeBtn").onclick = () => {
+div.remove()
+saveState()
+}
+
+div.querySelector(".featureName").oninput = saveState
+div.querySelector(".featureTasks").oninput = saveState
+
+saveState()
 
 }
 
 function generatePrompt(){
 
-const context = document.getElementById("context").value
-const constraints = document.getElementById("constraints").value
+const context = contextInput.value
+const constraints = constraintsInput.value
 
 const featureNames = document.querySelectorAll(".featureName")
 const featureTasks = document.querySelectorAll(".featureTasks")
@@ -94,8 +152,8 @@ let prompt = `${context}\n\nFeatures and tasks:\n\n`
 
 featureNames.forEach((feature, i)=>{
 
-const name = feature.value
-const tasks = featureTasks[i].value
+const name = feature.value.trim()
+const tasks = featureTasks[i].value.trim()
 
 if(name){
 
@@ -118,7 +176,10 @@ document.getElementById("output").value = prompt
 
 }
 
-addFeature()
+contextInput.oninput = saveState
+constraintsInput.oninput = saveState
+
+loadState()
 
 </script>
 
