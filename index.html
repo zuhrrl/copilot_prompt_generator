@@ -12,6 +12,20 @@
 
 <h1 class="text-2xl font-bold mb-6">Copilot Feature Prompt Generator</h1>
 
+<!-- Success Rate -->
+<div class="mb-6 p-4 bg-gray-50 rounded border">
+<div class="flex justify-between items-center mb-2">
+<span class="font-semibold">Implementation Progress</span>
+<span id="successRate" class="font-bold text-blue-600">0%</span>
+</div>
+
+<div class="w-full bg-gray-200 rounded h-3">
+<div id="progressBar"
+class="bg-blue-600 h-3 rounded"
+style="width:0%"></div>
+</div>
+</div>
+
 <!-- Project Context -->
 <div class="mb-6">
 <label class="font-semibold">Project Context</label>
@@ -22,18 +36,16 @@
 <div id="featuresContainer" class="space-y-6"></div>
 
 <button id="addFeatureBtn"
-class="bg-green-600 text-white px-4 py-2 rounded mb-6">
+class="my-3 bg-green-600 text-white px-4 py-2 rounded">
 + Add Feature
 </button>
 
 <!-- Constraints -->
 <div class="mb-6">
 <label class="font-semibold">Global Constraints</label>
-<textarea id="constraints" rows="4"
-class="w-full border rounded p-2 mt-1"
-placeholder="- Avoid redundant tables
-- Follow repository pattern
-- Reuse existing architecture"></textarea>
+<textarea id="constraints"
+rows="4"
+class="w-full border rounded p-2 mt-1"></textarea>
 </div>
 
 <button id="generateBtn"
@@ -44,8 +56,20 @@ Generate Copilot Prompt
 <!-- Output -->
 <div class="mt-6">
 <label class="font-semibold">Generated Prompt</label>
-<textarea id="output" rows="15"
+<textarea id="output"
+rows="15"
 class="w-full border rounded p-3 mt-1 bg-gray-50"></textarea>
+</div>
+
+<!-- Checklist -->
+<div class="mt-8">
+
+<h2 class="text-xl font-bold mb-4">
+Feature Implementation Checklist
+</h2>
+
+<div id="checklistContainer" class="space-y-4"></div>
+
 </div>
 
 </div>
@@ -57,15 +81,16 @@ const STORAGE_KEY = "copilotPromptGenerator"
 const contextInput = document.getElementById("context")
 const constraintsInput = document.getElementById("constraints")
 const container = document.getElementById("featuresContainer")
+const checklistContainer = document.getElementById("checklistContainer")
 
 document.getElementById("addFeatureBtn").onclick = addFeature
 document.getElementById("generateBtn").onclick = generatePrompt
 
-function saveState() {
+function saveState(){
 
 const features = []
 
-document.querySelectorAll(".featureBlock").forEach(block => {
+document.querySelectorAll(".featureBlock").forEach(block=>{
 
 features.push({
 name: block.querySelector(".featureName").value,
@@ -74,13 +99,11 @@ tasks: block.querySelector(".featureTasks").value
 
 })
 
-const data = {
-context: contextInput.value,
-constraints: constraintsInput.value,
+localStorage.setItem(STORAGE_KEY, JSON.stringify({
+context:contextInput.value,
+constraints:constraintsInput.value,
 features
-}
-
-localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+}))
 
 }
 
@@ -89,19 +112,21 @@ function loadState(){
 const data = JSON.parse(localStorage.getItem(STORAGE_KEY))
 
 if(!data){
+
 contextInput.value = "Use INSTRUCTIONS.md as project context."
 addFeature()
 return
-}
-
-contextInput.value = data.context || ""
-constraintsInput.value = data.constraints || ""
-
-data.features.forEach(f => addFeature(f.name, f.tasks))
 
 }
 
-function addFeature(name = "", tasks = ""){
+contextInput.value = data.context
+constraintsInput.value = data.constraints
+
+data.features.forEach(f => addFeature(f.name,f.tasks))
+
+}
+
+function addFeature(name="",tasks=""){
 
 const div = document.createElement("div")
 
@@ -114,81 +139,144 @@ div.innerHTML = `
 </div>
 
 <input class="featureName w-full border p-2 rounded mt-1"
-placeholder="Example: Ministries"
+placeholder="Feature name"
 value="${name}">
 
 <label class="font-semibold mt-3 block">Tasks</label>
 
-<textarea class="featureTasks w-full border p-2 rounded mt-1"
+<textarea
+class="featureTasks w-full border p-2 rounded mt-1"
 rows="4"
-placeholder="- Fix CRUD validation
-- Prevent duplicate titles
-- Improve form UX">${tasks}</textarea>
+placeholder="- task1
+- task2">${tasks}</textarea>
 `
 
 container.appendChild(div)
 
-div.querySelector(".removeBtn").onclick = () => {
+div.querySelector(".removeBtn").onclick=()=>{
 div.remove()
 saveState()
 }
 
-div.querySelector(".featureName").oninput = saveState
-div.querySelector(".featureTasks").oninput = saveState
+div.querySelector(".featureName").oninput=saveState
+div.querySelector(".featureTasks").oninput=saveState
 
 saveState()
 
 }
 
-
 function generatePrompt(){
 
-    const context = contextInput.value.trim()
-    const constraints = constraintsInput.value.trim()
+const context = contextInput.value.trim()
+const constraints = constraintsInput.value.trim()
 
-    const featureNames = document.querySelectorAll(".featureName")
-    const featureTasks = document.querySelectorAll(".featureTasks")
+const featureNames = document.querySelectorAll(".featureName")
+const featureTasks = document.querySelectorAll(".featureTasks")
 
-    let prompt = `PROJECT CONTEXT
-    ${context}
+let prompt = `PROJECT CONTEXT
+${context}
 
-    `
+`
 
-    featureNames.forEach((feature, i)=>{
+checklistContainer.innerHTML=""
 
-    const name = feature.value.trim()
-    const tasks = featureTasks[i].value.trim()
+featureNames.forEach((feature,i)=>{
 
-    if(!name) return
+const name = feature.value.trim()
+const tasks = featureTasks[i].value.trim()
 
-    prompt += `FEATURE
-    ${name}
+if(!name) return
 
-    GOAL
-    Improve and stabilize the ${name} module.
+prompt += `FEATURE
+${name}
 
-    TASKS
-    ${tasks}
+GOAL
+Improve and stabilize the ${name} module.
 
-    `
+TASKS
+${tasks}
 
-    })
+`
 
-    prompt += `CONSTRAINTS
-    ${constraints}
+renderChecklist(name,tasks)
 
-    IMPLEMENTATION RULES
-    - Analyze existing implementation before coding
-    - Modify existing code instead of rewriting
-    - Follow the current architecture and naming conventions
-    - Avoid unnecessary refactors
-    - Keep implementation simple and maintainable
+})
 
-    EXPECTED OUTPUT
-    - Updated or new code that integrates with the current project
-    `
+prompt += `CONSTRAINTS
+${constraints}
 
-    document.getElementById("output").value = prompt
+IMPLEMENTATION RULES
+- Analyze existing implementation before coding
+- Modify existing code instead of rewriting
+- Follow the current architecture
+- Avoid unnecessary refactors
+- Keep implementation simple
+
+EXPECTED OUTPUT
+- Updated or new code integrated with current project
+`
+
+document.getElementById("output").value = prompt
+
+updateSuccessRate()
+
+}
+
+function renderChecklist(feature,tasks){
+
+const div = document.createElement("div")
+
+div.className="border rounded p-4 bg-gray-50"
+
+const taskList = tasks.split("\n")
+.filter(t=>t.trim())
+.map(t=>t.replace("-","").trim())
+
+let html = `<div class="font-semibold mb-2">${feature}</div>`
+
+taskList.forEach(task=>{
+
+const id = feature+"_"+task
+
+html+=`
+<label class="flex items-center gap-2 mb-1">
+<input type="checkbox"
+class="taskCheck"
+data-id="${id}">
+<span>${task}</span>
+</label>
+`
+
+})
+
+div.innerHTML = html
+
+checklistContainer.appendChild(div)
+
+div.querySelectorAll(".taskCheck").forEach(cb=>{
+
+cb.onchange = updateSuccessRate
+
+})
+
+}
+
+function updateSuccessRate(){
+
+const checks = document.querySelectorAll(".taskCheck")
+
+if(checks.length===0) return
+
+let done=0
+
+checks.forEach(c=>{
+if(c.checked) done++
+})
+
+const rate = Math.round((done/checks.length)*100)
+
+document.getElementById("successRate").innerText = rate+"%"
+document.getElementById("progressBar").style.width = rate+"%"
 
 }
 
