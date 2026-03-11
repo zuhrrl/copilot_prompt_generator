@@ -130,7 +130,19 @@ const usageAfter=document.getElementById("usageAfter")
 const usageResult=document.getElementById("usageResult")
 
 document.getElementById("addFeatureBtn").onclick=addFeature
-document.getElementById("generateBtn").onclick=generatePrompt
+
+document.getElementById("generateBtn").onclick=()=>{
+
+if(!usageAfter.value){
+alert("Fill 'After (%)' first")
+usageAfter.focus()
+return
+}
+
+shiftUsage()
+generatePrompt()
+
+}
 
 document.getElementById("resetChecklist").onclick=()=>{
 localStorage.removeItem(CHECKLIST_KEY)
@@ -152,6 +164,26 @@ saveUsage()
 
 usageBefore.oninput=calculateUsage
 usageAfter.oninput=calculateUsage
+
+function shiftUsage(){
+
+const after=parseFloat(usageAfter.value||0)
+
+if(after>0){
+
+usageBefore.value=after
+usageAfter.value=""
+usageResult.value=""
+
+saveUsage()
+
+setTimeout(()=>{
+usageAfter.focus()
+},100)
+
+}
+
+}
 
 function saveUsage(){
 
