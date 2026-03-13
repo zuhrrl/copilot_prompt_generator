@@ -30,6 +30,25 @@ Reset Progress
 
 </div>
 
+<!-- Workspace Selector -->
+<div class="mb-6">
+
+<label class="font-semibold">Workspace</label>
+
+<input
+id="workspaceSearch"
+class="w-full border rounded p-2 mt-1"
+placeholder="Search workspace...">
+
+<div
+id="workspaceDropdown"
+class="border rounded mt-1 bg-white max-h-40 overflow-y-auto hidden">
+</div>
+
+<input type="hidden" id="workspaceSelected">
+
+</div>
+
 <!-- Copilot Usage Tracker -->
 <div class="mb-6 p-4 bg-gray-50 rounded border">
 
@@ -39,26 +58,17 @@ Reset Progress
 
 <div>
 <label class="text-sm">Before (%)</label>
-<input id="usageBefore"
-type="number"
-class="w-full border rounded p-2"
-placeholder="10">
+<input id="usageBefore" type="number" class="w-full border rounded p-2">
 </div>
 
 <div>
 <label class="text-sm">After (%)</label>
-<input id="usageAfter"
-type="number"
-class="w-full border rounded p-2"
-placeholder="11">
+<input id="usageAfter" type="number" class="w-full border rounded p-2">
 </div>
 
 <div>
 <label class="text-sm">Used (%)</label>
-<input id="usageResult"
-type="number"
-class="w-full border rounded p-2 bg-gray-100"
-readonly>
+<input id="usageResult" type="number" class="w-full border rounded p-2 bg-gray-100" readonly>
 </div>
 
 </div>
@@ -68,8 +78,7 @@ readonly>
 <!-- Project Context -->
 <div class="mb-6">
 <label class="font-semibold">Project Context</label>
-<input id="context"
-class="w-full border rounded p-2 mt-1">
+<input id="context" class="w-full border rounded p-2 mt-1">
 </div>
 
 <!-- Features -->
@@ -119,6 +128,7 @@ Feature Implementation Checklist
 const STORAGE_KEY="copilotPromptGenerator"
 const CHECKLIST_KEY="copilotChecklistState"
 const USAGE_KEY="copilotUsage"
+const WORKSPACE_KEY="copilotWorkspace"
 
 const contextInput=document.getElementById("context")
 const constraintsInput=document.getElementById("constraints")
@@ -129,25 +139,86 @@ const usageBefore=document.getElementById("usageBefore")
 const usageAfter=document.getElementById("usageAfter")
 const usageResult=document.getElementById("usageResult")
 
-document.getElementById("addFeatureBtn").onclick=addFeature
+/* ---------------- WORKSPACE ---------------- */
 
-document.getElementById("generateBtn").onclick=()=>{
+const workspaceSearch=document.getElementById("workspaceSearch")
+const workspaceDropdown=document.getElementById("workspaceDropdown")
+const workspaceSelected=document.getElementById("workspaceSelected")
 
-if(!usageAfter.value){
-alert("Fill 'After (%)' first")
-usageAfter.focus()
-return
+const workspaces=[
+"Asset Management System",
+"Finance Dashboard",
+"ERP Core",
+"Ministry Management",
+"HR System",
+"Procurement Platform"
+]
+
+function renderWorkspaceList(filter=""){
+
+workspaceDropdown.innerHTML=""
+
+const filtered=workspaces.filter(w=>
+w.toLowerCase().includes(filter.toLowerCase())
+)
+
+if(filtered.length===0){
+workspaceDropdown.innerHTML=`<div class="p-2 text-gray-400">No workspace</div>`
 }
 
-shiftUsage()
-generatePrompt()
+filtered.forEach(name=>{
+
+const div=document.createElement("div")
+
+div.className="p-2 hover:bg-gray-100 cursor-pointer"
+div.innerText=name
+
+div.onclick=()=>selectWorkspace(name)
+
+workspaceDropdown.appendChild(div)
+
+})
+
+workspaceDropdown.classList.remove("hidden")
 
 }
 
-document.getElementById("resetChecklist").onclick=()=>{
-localStorage.removeItem(CHECKLIST_KEY)
-location.reload()
+function selectWorkspace(name){
+
+workspaceSearch.value=name
+workspaceSelected.value=name
+workspaceDropdown.classList.add("hidden")
+
+localStorage.setItem(WORKSPACE_KEY,name)
+
 }
+
+function loadWorkspace(){
+
+const ws=localStorage.getItem(WORKSPACE_KEY)
+
+if(ws){
+workspaceSelected.value=ws
+workspaceSearch.value=ws
+}
+
+}
+
+workspaceSearch.oninput=e=>{
+renderWorkspaceList(e.target.value)
+}
+
+workspaceSearch.onfocus=()=>{
+renderWorkspaceList(workspaceSearch.value)
+}
+
+document.addEventListener("click",(e)=>{
+if(!workspaceSearch.contains(e.target) && !workspaceDropdown.contains(e.target)){
+workspaceDropdown.classList.add("hidden")
+}
+})
+
+/* ---------------- USAGE ---------------- */
 
 function calculateUsage(){
 
@@ -177,9 +248,7 @@ usageResult.value=""
 
 saveUsage()
 
-setTimeout(()=>{
-usageAfter.focus()
-},100)
+setTimeout(()=>usageAfter.focus(),100)
 
 }
 
@@ -204,6 +273,8 @@ usageAfter.value=data.after||""
 calculateUsage()
 
 }
+
+/* ---------------- STATE ---------------- */
 
 function getChecklistState(){
 return JSON.parse(localStorage.getItem(CHECKLIST_KEY)||"{}")
@@ -253,6 +324,8 @@ data.features.forEach(f=>addFeature(f.name,f.tasks))
 
 }
 
+/* ---------------- FEATURES ---------------- */
+
 function addFeature(name="",tasks=""){
 
 const div=document.createElement("div")
@@ -262,13 +335,8 @@ div.className="featureBlock border rounded-lg p-4 bg-gray-50"
 div.innerHTML=`
 
 <div class="flex justify-between items-center">
-
 <label class="font-semibold">Feature</label>
-
-<button class="text-red-500 text-sm removeBtn">
-Remove
-</button>
-
+<button class="text-red-500 text-sm removeBtn">Remove</button>
 </div>
 
 <input
@@ -276,9 +344,7 @@ class="featureName w-full border p-2 rounded mt-1"
 placeholder="Example: Ministries"
 value="${name}">
 
-<label class="font-semibold mt-3 block">
-Tasks
-</label>
+<label class="font-semibold mt-3 block">Tasks</label>
 
 <textarea
 class="featureTasks w-full border p-2 rounded mt-1"
@@ -303,9 +369,16 @@ saveState()
 
 }
 
+document.getElementById("addFeatureBtn").onclick=addFeature
+
+/* ---------------- PROMPT ---------------- */
+
 function generatePrompt(){
 
-const context=contextInput.value.trim()
+const workspace=workspaceSelected.value||"Unknown Workspace"
+const context=`[Workspace: ${workspace}]
+${contextInput.value.trim()}`
+
 const constraints=constraintsInput.value.trim()
 
 const featureNames=document.querySelectorAll(".featureName")
@@ -323,7 +396,7 @@ featureNames.forEach((feature,i)=>{
 const name=feature.value.trim()
 const tasks=featureTasks[i].value.trim()
 
-if(!name) return
+if(!name)return
 
 prompt+=`FEATURE
 ${name}
@@ -360,10 +433,11 @@ updateSuccessRate()
 
 }
 
+/* ---------------- CHECKLIST ---------------- */
+
 function renderChecklist(feature,tasks){
 
 const div=document.createElement("div")
-
 div.className="border rounded p-4 bg-gray-50"
 
 const taskList=tasks.split("\n")
@@ -378,13 +452,8 @@ const id=feature+"_"+task
 
 html+=`
 <label class="flex items-center gap-2 mb-1">
-
-<input type="checkbox"
-class="taskCheck"
-data-id="${id}">
-
+<input type="checkbox" class="taskCheck" data-id="${id}">
 <span>${task}</span>
-
 </label>
 `
 
@@ -400,9 +469,7 @@ div.querySelectorAll(".taskCheck").forEach(cb=>{
 
 const id=cb.dataset.id
 
-if(state[id]){
-cb.checked=true
-}
+if(state[id])cb.checked=true
 
 cb.onchange=()=>{
 
@@ -410,7 +477,6 @@ const state=getChecklistState()
 state[id]=cb.checked
 
 saveChecklistState(state)
-
 updateSuccessRate()
 
 }
@@ -432,7 +498,7 @@ return
 let done=0
 
 checks.forEach(c=>{
-if(c.checked) done++
+if(c.checked)done++
 })
 
 const rate=Math.round((done/checks.length)*100)
@@ -442,11 +508,31 @@ document.getElementById("progressBar").style.width=rate+"%"
 
 }
 
+/* ---------------- EVENTS ---------------- */
+
 contextInput.oninput=saveState
 constraintsInput.oninput=saveState
 
+document.getElementById("generateBtn").onclick=()=>{
+if(!usageAfter.value){
+alert("Fill 'After (%)' first")
+usageAfter.focus()
+return
+}
+shiftUsage()
+generatePrompt()
+}
+
+document.getElementById("resetChecklist").onclick=()=>{
+localStorage.removeItem(CHECKLIST_KEY)
+location.reload()
+}
+
+/* ---------------- INIT ---------------- */
+
 loadState()
 loadUsage()
+loadWorkspace()
 
 </script>
 
