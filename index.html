@@ -12,6 +12,25 @@
 
 <h1 class="text-2xl font-bold mb-6">Copilot Feature Prompt Generator</h1>
 
+<!-- Workspace -->
+<div class="mb-6">
+<label class="font-semibold">Workspace</label>
+
+<div class="flex gap-2 mt-1">
+
+<select id="workspaceSelect"
+class="border rounded p-2 w-full"></select>
+
+<button id="createWorkspaceBtn"
+class="bg-blue-600 text-white px-4 rounded">
+New
+</button>
+
+</div>
+
+<div id="workspaceDate" class="text-sm text-gray-500 mt-1"></div>
+</div>
+
 <!-- Progress -->
 <div class="mb-6 p-4 bg-gray-50 rounded border">
 
@@ -21,35 +40,14 @@
 </div>
 
 <div class="w-full bg-gray-200 rounded h-3">
-<div id="progressBar" class="bg-blue-600 h-3 rounded" style="width:0%"></div>
+<div id="progressBar"
+class="bg-blue-600 h-3 rounded"
+style="width:0%"></div>
 </div>
-
-<button id="resetChecklist" class="mt-3 text-sm text-red-500">
-Reset Progress
-</button>
-
-</div>
-
-<!-- Workspace Selector -->
-<div class="mb-6">
-
-<label class="font-semibold">Workspace</label>
-
-<input
-id="workspaceSearch"
-class="w-full border rounded p-2 mt-1"
-placeholder="Search workspace...">
-
-<div
-id="workspaceDropdown"
-class="border rounded mt-1 bg-white max-h-40 overflow-y-auto hidden">
-</div>
-
-<input type="hidden" id="workspaceSelected">
 
 </div>
 
-<!-- Copilot Usage Tracker -->
+<!-- Usage -->
 <div class="mb-6 p-4 bg-gray-50 rounded border">
 
 <h2 class="font-semibold mb-3">Copilot Usage Tracker</h2>
@@ -58,27 +56,35 @@ class="border rounded mt-1 bg-white max-h-40 overflow-y-auto hidden">
 
 <div>
 <label class="text-sm">Before (%)</label>
-<input id="usageBefore" type="number" class="w-full border rounded p-2">
+<input id="usageBefore"
+type="number"
+class="w-full border rounded p-2">
 </div>
 
 <div>
 <label class="text-sm">After (%)</label>
-<input id="usageAfter" type="number" class="w-full border rounded p-2">
+<input id="usageAfter"
+type="number"
+class="w-full border rounded p-2">
 </div>
 
 <div>
 <label class="text-sm">Used (%)</label>
-<input id="usageResult" type="number" class="w-full border rounded p-2 bg-gray-100" readonly>
+<input id="usageResult"
+type="number"
+class="w-full border rounded p-2 bg-gray-100"
+readonly>
 </div>
 
 </div>
 
 </div>
 
-<!-- Project Context -->
+<!-- Context -->
 <div class="mb-6">
 <label class="font-semibold">Project Context</label>
-<input id="context" class="w-full border rounded p-2 mt-1">
+<input id="context"
+class="w-full border rounded p-2 mt-1">
 </div>
 
 <!-- Features -->
@@ -112,23 +118,28 @@ class="w-full border rounded p-3 mt-1 bg-gray-50"></textarea>
 
 <!-- Checklist -->
 <div class="mt-8">
-
-<h2 class="text-xl font-bold mb-4">
-Feature Implementation Checklist
-</h2>
-
+<h2 class="text-xl font-bold mb-4">Feature Implementation Checklist</h2>
 <div id="checklistContainer" class="space-y-4"></div>
-
 </div>
 
 </div>
 
 <script>
 
-const STORAGE_KEY="copilotPromptGenerator"
-const CHECKLIST_KEY="copilotChecklistState"
-const USAGE_KEY="copilotUsage"
-const WORKSPACE_KEY="copilotWorkspace"
+/* ===============================
+STORAGE KEYS
+=============================== */
+
+const WORKSPACES_KEY="copilot_workspaces"
+const CURRENT_WORKSPACE_KEY="copilot_current_workspace"
+
+/* ===============================
+ELEMENTS
+=============================== */
+
+const workspaceSelect=document.getElementById("workspaceSelect")
+const workspaceDate=document.getElementById("workspaceDate")
+const createWorkspaceBtn=document.getElementById("createWorkspaceBtn")
 
 const contextInput=document.getElementById("context")
 const constraintsInput=document.getElementById("constraints")
@@ -139,152 +150,99 @@ const usageBefore=document.getElementById("usageBefore")
 const usageAfter=document.getElementById("usageAfter")
 const usageResult=document.getElementById("usageResult")
 
-/* ---------------- WORKSPACE ---------------- */
+/* ===============================
+WORKSPACE SYSTEM
+=============================== */
 
-const workspaceSearch=document.getElementById("workspaceSearch")
-const workspaceDropdown=document.getElementById("workspaceDropdown")
-const workspaceSelected=document.getElementById("workspaceSelected")
-
-const workspaces=[
-"Asset Management System",
-"Finance Dashboard",
-"ERP Core",
-"Ministry Management",
-"HR System",
-"Procurement Platform"
-]
-
-function renderWorkspaceList(filter=""){
-
-workspaceDropdown.innerHTML=""
-
-const filtered=workspaces.filter(w=>
-w.toLowerCase().includes(filter.toLowerCase())
-)
-
-if(filtered.length===0){
-workspaceDropdown.innerHTML=`<div class="p-2 text-gray-400">No workspace</div>`
+function getWorkspaces(){
+return JSON.parse(localStorage.getItem(WORKSPACES_KEY)||"[]")
 }
 
-filtered.forEach(name=>{
+function saveWorkspaces(list){
+localStorage.setItem(WORKSPACES_KEY,JSON.stringify(list))
+}
 
-const div=document.createElement("div")
+function getWorkspaceDataKey(id){
+return "workspace_data_"+id
+}
 
-div.className="p-2 hover:bg-gray-100 cursor-pointer"
-div.innerText=name
+function setCurrentWorkspace(id){
+localStorage.setItem(CURRENT_WORKSPACE_KEY,id)
+}
 
-div.onclick=()=>selectWorkspace(name)
+function getCurrentWorkspace(){
+return localStorage.getItem(CURRENT_WORKSPACE_KEY)
+}
 
-workspaceDropdown.appendChild(div)
+function renderWorkspaceList(){
+
+const list=getWorkspaces()
+
+workspaceSelect.innerHTML=""
+
+list.forEach(ws=>{
+
+const option=document.createElement("option")
+
+option.value=ws.id
+option.innerText=ws.name
+
+workspaceSelect.appendChild(option)
 
 })
 
-workspaceDropdown.classList.remove("hidden")
-
 }
 
-function selectWorkspace(name){
+createWorkspaceBtn.onclick=()=>{
 
-workspaceSearch.value=name
-workspaceSelected.value=name
-workspaceDropdown.classList.add("hidden")
+const name=prompt("Workspace name")
 
-localStorage.setItem(WORKSPACE_KEY,name)
+if(!name) return
 
-}
+const list=getWorkspaces()
 
-function loadWorkspace(){
+const id=Date.now().toString()
 
-const ws=localStorage.getItem(WORKSPACE_KEY)
+const created=new Date().toISOString().split("T")[0]
 
-if(ws){
-workspaceSelected.value=ws
-workspaceSearch.value=ws
-}
-
-}
-
-workspaceSearch.oninput=e=>{
-renderWorkspaceList(e.target.value)
-}
-
-workspaceSearch.onfocus=()=>{
-renderWorkspaceList(workspaceSearch.value)
-}
-
-document.addEventListener("click",(e)=>{
-if(!workspaceSearch.contains(e.target) && !workspaceDropdown.contains(e.target)){
-workspaceDropdown.classList.add("hidden")
-}
+list.push({
+id,
+name,
+created
 })
 
-/* ---------------- USAGE ---------------- */
+saveWorkspaces(list)
 
-function calculateUsage(){
+renderWorkspaceList()
 
-const before=parseFloat(usageBefore.value||0)
-const after=parseFloat(usageAfter.value||0)
+workspaceSelect.value=id
+setCurrentWorkspace(id)
 
-const used=after-before
+resetWorkspace()
 
-usageResult.value=used>0?used:0
-
-saveUsage()
+workspaceDate.innerText="Created: "+created
 
 }
 
-usageBefore.oninput=calculateUsage
-usageAfter.oninput=calculateUsage
+workspaceSelect.onchange=()=>{
 
-function shiftUsage(){
+const id=workspaceSelect.value
 
-const after=parseFloat(usageAfter.value||0)
+setCurrentWorkspace(id)
 
-if(after>0){
-
-usageBefore.value=after
-usageAfter.value=""
-usageResult.value=""
-
-saveUsage()
-
-setTimeout(()=>usageAfter.focus(),100)
+loadWorkspace()
 
 }
 
-}
+/* ===============================
+WORKSPACE DATA
+=============================== */
 
-function saveUsage(){
+function saveWorkspace(){
 
-localStorage.setItem(USAGE_KEY,JSON.stringify({
-before:usageBefore.value,
-after:usageAfter.value
-}))
+const id=getCurrentWorkspace()
 
-}
-
-function loadUsage(){
-
-const data=JSON.parse(localStorage.getItem(USAGE_KEY)||"{}")
-
-usageBefore.value=data.before||""
-usageAfter.value=data.after||""
-
-calculateUsage()
-
-}
-
-/* ---------------- STATE ---------------- */
-
-function getChecklistState(){
-return JSON.parse(localStorage.getItem(CHECKLIST_KEY)||"{}")
-}
-
-function saveChecklistState(state){
-localStorage.setItem(CHECKLIST_KEY,JSON.stringify(state))
-}
-
-function saveState(){
+if(!id) return
 
 const features=[]
 
@@ -297,34 +255,60 @@ tasks:block.querySelector(".featureTasks").value
 
 })
 
-localStorage.setItem(STORAGE_KEY,JSON.stringify({
+const data={
 context:contextInput.value,
 constraints:constraintsInput.value,
-features
-}))
+features,
+usage:{
+before:usageBefore.value,
+after:usageAfter.value
+},
+checklist:getChecklistState(),
+last_opened:new Date().toISOString().split("T")[0]
+}
+
+localStorage.setItem(
+getWorkspaceDataKey(id),
+JSON.stringify(data)
+)
 
 }
 
-function loadState(){
+function loadWorkspace(){
 
-const data=JSON.parse(localStorage.getItem(STORAGE_KEY))
+const id=getCurrentWorkspace()
 
-if(!data){
+if(!id) return
 
-contextInput.value="Use INSTRUCTIONS.md as project context."
+const data=JSON.parse(
+localStorage.getItem(getWorkspaceDataKey(id))||"{}"
+)
+
+container.innerHTML=""
+
+contextInput.value=data.context||""
+constraintsInput.value=data.constraints||""
+
+usageBefore.value=data.usage?.before||""
+usageAfter.value=data.usage?.after||""
+
+const features=data.features||[]
+
+if(features.length===0){
 addFeature()
-return
+}else{
+features.forEach(f=>addFeature(f.name,f.tasks))
+}
+
+renderChecklistFromData(data.checklist||{})
+
+updateSuccessRate()
 
 }
 
-contextInput.value=data.context
-constraintsInput.value=data.constraints
-
-data.features.forEach(f=>addFeature(f.name,f.tasks))
-
-}
-
-/* ---------------- FEATURES ---------------- */
+/* ===============================
+FEATURES
+=============================== */
 
 function addFeature(name="",tasks=""){
 
@@ -335,23 +319,24 @@ div.className="featureBlock border rounded-lg p-4 bg-gray-50"
 div.innerHTML=`
 
 <div class="flex justify-between items-center">
+
 <label class="font-semibold">Feature</label>
-<button class="text-red-500 text-sm removeBtn">Remove</button>
+
+<button class="text-red-500 text-sm removeBtn">
+Remove
+</button>
+
 </div>
 
 <input
 class="featureName w-full border p-2 rounded mt-1"
-placeholder="Example: Ministries"
 value="${name}">
 
 <label class="font-semibold mt-3 block">Tasks</label>
 
 <textarea
 class="featureTasks w-full border p-2 rounded mt-1"
-rows="4"
-placeholder="- Fix CRUD validation
-- Prevent duplicate titles
-- Improve form UX">${tasks}</textarea>
+rows="4">${tasks}</textarea>
 
 `
 
@@ -359,44 +344,113 @@ container.appendChild(div)
 
 div.querySelector(".removeBtn").onclick=()=>{
 div.remove()
-saveState()
+saveWorkspace()
 }
 
-div.querySelector(".featureName").oninput=saveState
-div.querySelector(".featureTasks").oninput=saveState
+div.querySelector(".featureName").oninput=saveWorkspace
+div.querySelector(".featureTasks").oninput=saveWorkspace
 
-saveState()
+saveWorkspace()
 
 }
 
 document.getElementById("addFeatureBtn").onclick=addFeature
 
-/* ---------------- PROMPT ---------------- */
+/* ===============================
+USAGE
+=============================== */
+
+function calculateUsage(){
+
+const before=parseFloat(usageBefore.value||0)
+const after=parseFloat(usageAfter.value||0)
+
+usageResult.value=Math.max(after-before,0)
+
+saveWorkspace()
+
+}
+
+usageBefore.oninput=calculateUsage
+usageAfter.oninput=calculateUsage
+
+/* ===============================
+CHECKLIST
+=============================== */
+
+function getChecklistState(){
+
+const checks=document.querySelectorAll(".taskCheck")
+
+const state={}
+
+checks.forEach(c=>{
+state[c.dataset.id]=c.checked
+})
+
+return state
+
+}
+
+function renderChecklist(feature,tasks){
+
+const div=document.createElement("div")
+
+div.className="border rounded p-4 bg-gray-50"
+
+const taskList=tasks.split("\n")
+.filter(t=>t.trim())
+
+let html=`<div class="font-semibold mb-2">${feature}</div>`
+
+taskList.forEach(task=>{
+
+const id=feature+"_"+task
+
+html+=`
+<label class="flex items-center gap-2 mb-1">
+<input type="checkbox"
+class="taskCheck"
+data-id="${id}">
+<span>${task}</span>
+</label>
+`
+
+})
+
+div.innerHTML=html
+
+checklistContainer.appendChild(div)
+
+}
+
+function renderChecklistFromData(state){
+
+document.querySelectorAll(".taskCheck").forEach(cb=>{
+if(state[cb.dataset.id]){
+cb.checked=true
+}
+})
+
+}
+
+/* ===============================
+PROMPT
+=============================== */
 
 function generatePrompt(){
 
-const workspace=workspaceSelected.value||"Unknown Workspace"
-const context=`[Workspace: ${workspace}]
-${contextInput.value.trim()}`
-
-const constraints=constraintsInput.value.trim()
-
-const featureNames=document.querySelectorAll(".featureName")
-const featureTasks=document.querySelectorAll(".featureTasks")
+checklistContainer.innerHTML=""
 
 let prompt=`PROJECT CONTEXT
-${context}
+${contextInput.value}
 
 `
 
-checklistContainer.innerHTML=""
+document.querySelectorAll(".featureBlock").forEach(block=>{
 
-featureNames.forEach((feature,i)=>{
-
-const name=feature.value.trim()
-const tasks=featureTasks[i].value.trim()
-
-if(!name)return
+const name=block.querySelector(".featureName").value
+const tasks=block.querySelector(".featureTasks").value
 
 prompt+=`FEATURE
 ${name}
@@ -413,92 +467,36 @@ renderChecklist(name,tasks)
 
 })
 
-prompt+=`CONSTRAINTS
-${constraints}
-
-IMPLEMENTATION RULES
-- Analyze existing implementation before coding
-- Modify existing code instead of rewriting
-- Follow the current architecture
-- Avoid unnecessary refactors
-- Keep implementation simple and maintainable
-
-EXPECTED OUTPUT
-- Updated or new code integrated with the current project
+prompt+=`IMPLEMENTATION RULES
+- Analyze existing implementation
+- Modify existing code
+- Avoid unnecessary refactor
 `
 
 document.getElementById("output").value=prompt
 
 updateSuccessRate()
 
-}
-
-/* ---------------- CHECKLIST ---------------- */
-
-function renderChecklist(feature,tasks){
-
-const div=document.createElement("div")
-div.className="border rounded p-4 bg-gray-50"
-
-const taskList=tasks.split("\n")
-.filter(t=>t.trim())
-.map(t=>t.replace("-","").trim())
-
-let html=`<div class="font-semibold mb-2">${feature}</div>`
-
-taskList.forEach(task=>{
-
-const id=feature+"_"+task
-
-html+=`
-<label class="flex items-center gap-2 mb-1">
-<input type="checkbox" class="taskCheck" data-id="${id}">
-<span>${task}</span>
-</label>
-`
-
-})
-
-div.innerHTML=html
-
-checklistContainer.appendChild(div)
-
-const state=getChecklistState()
-
-div.querySelectorAll(".taskCheck").forEach(cb=>{
-
-const id=cb.dataset.id
-
-if(state[id])cb.checked=true
-
-cb.onchange=()=>{
-
-const state=getChecklistState()
-state[id]=cb.checked
-
-saveChecklistState(state)
-updateSuccessRate()
+saveWorkspace()
 
 }
 
-})
+document.getElementById("generateBtn").onclick=generatePrompt
 
-}
+/* ===============================
+PROGRESS
+=============================== */
 
 function updateSuccessRate(){
 
 const checks=document.querySelectorAll(".taskCheck")
 
-if(checks.length===0){
-document.getElementById("successRate").innerText="0%"
-document.getElementById("progressBar").style.width="0%"
-return
-}
+if(checks.length===0) return
 
 let done=0
 
 checks.forEach(c=>{
-if(c.checked)done++
+if(c.checked) done++
 })
 
 const rate=Math.round((done/checks.length)*100)
@@ -508,31 +506,45 @@ document.getElementById("progressBar").style.width=rate+"%"
 
 }
 
-/* ---------------- EVENTS ---------------- */
+/* ===============================
+RESET
+=============================== */
 
-contextInput.oninput=saveState
-constraintsInput.oninput=saveState
+function resetWorkspace(){
 
-document.getElementById("generateBtn").onclick=()=>{
-if(!usageAfter.value){
-alert("Fill 'After (%)' first")
-usageAfter.focus()
-return
+container.innerHTML=""
+
+contextInput.value=""
+constraintsInput.value=""
+
+usageBefore.value=""
+usageAfter.value=""
+usageResult.value=""
+
+addFeature()
+
 }
-shiftUsage()
-generatePrompt()
-}
 
-document.getElementById("resetChecklist").onclick=()=>{
-localStorage.removeItem(CHECKLIST_KEY)
-location.reload()
-}
+/* ===============================
+INIT
+=============================== */
 
-/* ---------------- INIT ---------------- */
+function init(){
 
-loadState()
-loadUsage()
+renderWorkspaceList()
+
+const current=getCurrentWorkspace()
+
+if(current){
+
+workspaceSelect.value=current
 loadWorkspace()
+
+}
+
+}
+
+init()
 
 </script>
 
