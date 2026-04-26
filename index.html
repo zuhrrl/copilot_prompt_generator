@@ -270,6 +270,7 @@ div.querySelector(".featureTasks").oninput=saveState
 saveState()
 
 }
+
 function generatePrompt(){
 
 const context=contextInput.value.trim()
@@ -278,29 +279,8 @@ const constraints=constraintsInput.value.trim()
 const featureNames=document.querySelectorAll(".featureName")
 const featureTasks=document.querySelectorAll(".featureTasks")
 
-let prompt=`### ROLE
-You are a senior software engineer working on an existing production codebase.
-
-### OBJECTIVE
-Deliver COMPLETE, WORKING, and INTEGRATED implementation — not partial code.
-
-### PROJECT CONTEXT
+let prompt=`PROJECT CONTEXT
 ${context}
-
-### GLOBAL RULES
-- ALWAYS analyze existing code before writing anything
-- NEVER rewrite large sections unless absolutely necessary
-- FOLLOW existing architecture, naming, and patterns
-- DO NOT create duplicate logic
-- KEEP code minimal, clean, and maintainable
-- NO placeholders, NO pseudo code, NO TODO comments
-
-### OUTPUT FORMAT (STRICT)
-For each feature:
-1. Analysis of existing code
-2. Exact changes needed
-3. Final code (ready to paste)
-4. Explanation of why
 
 `
 
@@ -313,56 +293,33 @@ const tasks=featureTasks[i].value.trim()
 
 if(!name) return
 
-const taskList = tasks.split("\n")
-.filter(t=>t.trim())
-.map(t=>t.replace("-","").trim())
+prompt+=`FEATURE
+${name}
 
-prompt+=`
----
+GOAL
+Improve and stabilize the ${name} module.
 
-## FEATURE: ${name}
+TASKS
+${tasks}
 
-### GOAL
-Stabilize and improve the ${name} module with production-ready quality.
-
-### TASK BREAKDOWN
-`
-
-taskList.forEach(task=>{
-prompt+=`
-- ${task}
-
-  ACCEPTANCE CRITERIA:
-  - Fully implemented in existing flow
-  - No regression introduced
-  - Handles edge cases
-  - Matches current coding style
-`
-})
-
-prompt+=`
-### IMPLEMENTATION INSTRUCTIONS
-- Locate relevant files first
-- Modify existing functions instead of duplicating
-- Ensure backward compatibility
-- Validate inputs and errors properly
 `
 
 renderChecklist(name,tasks)
 
 })
 
-prompt+=`
----
-
-### CONSTRAINTS
+prompt+=`CONSTRAINTS
 ${constraints}
 
-### FINAL CHECKLIST (MUST PASS)
-- No missing logic
-- No broken references
-- No unused code
-- Fully tested logically
+IMPLEMENTATION RULES
+- Analyze existing implementation before coding
+- Modify existing code instead of rewriting
+- Follow the current architecture
+- Avoid unnecessary refactors
+- Keep implementation simple and maintainable
+
+EXPECTED OUTPUT
+- Updated or new code integrated with the current project
 `
 
 document.getElementById("output").value=prompt
